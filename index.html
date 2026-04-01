@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silly Stakes Arcade | Brainrot Gacha</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --accent-pink: #ff00ff;
+            --accent-blue: #00d4ff;
+            --text-main: #ffffff;
+            --currency-gold: #ffcc00;
+            --currency-green: #00ff66;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+
+        body {
+            background: radial-gradient(circle at top left, #0d0d1a, #16213e, #0a0a12);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-main);
+            display: flex;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        /* Sidebar Nav */
+        nav {
+            width: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 25px;
+            margin-right: 20px;
+            height: calc(100vh - 40px);
+            position: sticky;
+            top: 20px;
+        }
+
+        .user-profile-mini {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 14px 18px;
+            text-decoration: none;
+            color: rgba(255, 255, 255, 0.6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            transform: translateX(5px);
+        }
+
+        .nav-item.active { border-left: 4px solid var(--accent-pink); }
+
+        /* Main Content */
+        main { flex: 1; display: flex; flex-direction: column; gap: 20px; max-width: 1300px; }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 35px;
+        }
+
+        .currencies { display: flex; gap: 15px; }
+        .balance-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px 22px;
+            border-radius: 50px;
+            border: 1px solid var(--glass-border);
+        }
+        .balance-amount { font-weight: 800; font-size: 1.1rem; letter-spacing: 0.5px; }
+
+        /* View Control */
+        .view-section { display: none; animation: slideUp 0.4s ease-out forwards; }
+        .view-section.active { display: flex; flex-direction: column; gap: 20px; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Gacha Styles */
+        .hero {
+            padding: 50px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+            background: linear-gradient(135deg, rgba(255,0,255,0.05) 0%, rgba(0,212,255,0.05) 100%);
+        }
+
+        .roll-display {
+            height: 320px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        .result-card {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+            70% { transform: scale(1.1) rotate(5deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .result-card img {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 20px rgba(255,255,255,0.2));
+        }
+
+        .rarity-pill {
+            padding: 6px 20px;
+            border-radius: 50px;
+            text-transform: uppercase;
+            font-weight: 900;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        /* Inventory Grid */
+        .inv-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 25px;
+        }
+
+        .inv-card {
+            padding: 15px;
+            text-align: center;
+            position: relative;
+            transition: 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .inv-card:hover { background: rgba(255,255,255,0.1); border-color: var(--accent-blue); transform: translateY(-5px); }
+
+        .inv-card img { width: 100%; height: 100px; object-fit: contain; margin-bottom: 10px; }
+
+        .badge-count {
+            position: absolute; top: 8px; right: 8px;
+            background: var(--accent-pink); color: white;
+            font-size: 0.75rem; font-weight: bold; padding: 2px 8px; border-radius: 8px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 15px 40px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-roll { background: #fff; color: #000; box-shadow: 0 0 30px rgba(255,255,255,0.2); }
+        .btn-roll:hover { transform: scale(1.05); box-shadow: 0 0 40px var(--accent-blue); }
+        .btn-roll:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Settings */
+        .settings-container { padding: 40px; max-width: 600px; margin: 0 auto; width: 100%; }
+        .form-group { margin-bottom: 25px; }
+        .form-group label { display: block; margin-bottom: 10px; color: rgba(255,255,255,0.7); }
+        input[type="text"] {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.1rem;
+        }
+
+        /* Shop Cards */
+        .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 25px; }
+        .shop-item { padding: 30px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 15px; transition: 0.3s; }
+        .shop-item:hover { transform: scale(1.02); background: rgba(255,255,255,0.12); }
+    </style>
+</head>
+<body>
+
+    <nav class="glass">
+        <div class="user-profile-mini">
+            <i data-lucide="user-circle" size="32" color="var(--accent-blue)"></i>
+            <div>
+                <p style="font-size: 0.7rem; color: #aaa; text-transform: uppercase;">Player</p>
+                <h4 id="nav-username">GAMER123</h4>
+            </div>
+        </div>
+        
+        <a class="nav-item active" onclick="showView('gacha')" id="tab-gacha"><i data-lucide="dices"></i> Gacha</a>
+        <a class="nav-item" onclick="showView('inventory')" id="tab-inventory"><i data-lucide="package"></i> Inventory</a>
+        <a class="nav-item" onclick="showView('shop')" id="tab-shop"><i data-lucide="shopping-cart"></i> Shop</a>
+        <a class="nav-item" onclick="showView('settings')" id="tab-settings"><i data-lucide="settings"></i> Settings</a>
+    </nav>
+
+    <main>
+        <header class="glass">
+            <div>
+                <p style="color: #aaa;">Welcome back,</p>
+                <h2 id="header-username">Gamer123</h2>
+            </div>
+            <div class="currencies">
+                <div class="balance-box" style="border-color: var(--currency-green)">
+                    <i data-lucide="coins" color="var(--currency-green)"></i>
+                    <span class="balance-amount" id="silver-bal">0</span>
+                </div>
+                <div class="balance-box" style="border-color: var(--currency-gold)">
+                    <i data-lucide="gem" color="var(--currency-gold)"></i>
+                    <span class="balance-amount" id="gem-bal">12500</span>
+                </div>
+            </div>
+        </header>
+
+        <div id="view-gacha" class="view-section active">
+            <div class="hero glass">
+                <div class="hero-text">
+                    <h1 style="font-size: 2.5rem; margin-bottom: 10px;">STEAL A BRAINROT</h1>
+                    <p style="color: #ccc;">Try your luck for a Mythic or OG tier drop!</p>
+                </div>
+                
+                <div class="roll-display">
+                    <div id="roll-result" class="result-card">
+                        <img id="res-img" src="" alt="result">
+                        <h2 id="res-name">Name</h2>
+                        <span id="res-rarity" class="rarity-pill">Rarity</span>
+                    </div>
+                    <div id="roll-idle">
+                        <i data-lucide="container" size="80" color="rgba(255,255,255,0.1)"></i>
+                    </div>
+                </div>
+
+                <button class="btn btn-roll" id="roll-btn" onclick="performRoll()">ROLL (500 GEMS)</button>
+            </div>
+        </div>
+
+        <div id="view-inventory" class="view-section glass">
+            <div style="padding: 25px 25px 0 25px;">
+                <h2>Your Collection</h2>
+                <p id="inv-stats" style="color: #aaa;">Owned: 0 / 83</p>
+            </div>
+            <div class="inv-grid" id="inventory-container"></div>
+        </div>
+
+        <div id="view-shop" class="view-section glass">
+            <div style="padding: 25px 25px 0 25px;">
+                <h2>Arcade Shop</h2>
+                <p style="color: #aaa;">Use Silver for guaranteed luck.</p>
+            </div>
+            <div class="shop-grid">
+                <div class="shop-item glass">
+                    <i data-lucide="refresh-cw" size="48" color="var(--accent-blue)"></i>
+                    <h3>Convert Gems</h3>
+                    <p>Turn 1,000 Gems into 100 Silver</p>
+                    <button class="btn btn-roll" style="font-size: 0.8rem; padding: 10px 20px;" onclick="convertGems()">Convert</button>
+                </div>
+                <div class="shop-item glass">
+                    <i data-lucide="shield-check" size="48" color="var(--currency-green)"></i>
+                    <h3>Epic Pack</h3>
+                    <p>A guaranteed Epic or better brainrot!</p>
+                    <button class="btn btn-roll" style="font-size: 0.8rem; padding: 10px 20px;" onclick="buyGuaranteed(2, 200)">200 Silver</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-settings" class="view-section glass">
+            <div class="settings-container">
+                <h2>Profile Settings</h2>
+                <br>
+                <div class="form-group">
+                    <label>Player Name</label>
+                    <input type="text" id="name-input" placeholder="Enter username...">
+                </div>
+                <button class="btn btn-roll" onclick="updateProfile()">Update Profile</button>
+                
+                <br><br><hr style="opacity: 0.1;"><br>
+                
+                <h2>Redeem Recovery Code</h2>
+                <p style="font-size: 0.8rem; color: #aaa; margin-bottom: 10px;">If you ran out of gems, check Discord for your code.</p>
+                <div class="form-group">
+                    <input type="text" id="recovery-input" placeholder="Enter code here...">
+                </div>
+                <button class="btn btn-roll" style="background: var(--currency-green);" onclick="redeemCode()">Redeem Gems</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // --- WEBHOOK CONFIG ---
+        const WEBHOOK_URL = "https://discord.com/api/webhooks/1488688357428166777/nVlTdWqsTVwZWF3jNyJxt3UsGyJV0ZEpUrRAFFJCIK4nf8tBaN2Mi4rgHSIOP-Msxhnl"; 
+
+        // --- DATABASE ---
+        // CHANCES NERFED: Common weight increased massiveley, higher tiers significantly reduced.
+        const rarities = {
+            "COMMON": { weight: 8000, color: "#9ca3af", hex: 0x9ca3af },
+            "RARE": { weight: 60, color: "#3b82f6", hex: 0x3b82f6 }, 
+            "EPIC": { weight: 15, color: "#a855f7", hex: 0xa855f7 },
+            "LEGENDARY": { weight: 4, color: "#f59e0b", hex: 0xf59e0b },
+            "MYTHIC": { weight: 1.5, color: "#ef4444", hex: 0xef4444 },
+            "BRAINROT GOD": { weight: 0.4, color: "#ec4899", hex: 0xec4899 },
+            "SECRET LOW": { weight: 0.1, color: "#06b6d4", hex: 0x06b6d4 },
+            "SECRET MEDIUM": { weight: 0.05, color: "#10b981", hex: 0x10b981 },
+            "SECRET HIGH": { weight: 0.02, color: "#fbbf24", hex: 0xfbbf24 },
+            "OG": { weight: 0.005, color: "#ffffff", hex: 0xffffff }
+        };
+
+        const raw_db = {
+            "COMMON": [
+                ["Noobini Pizzanini", "https://static.wikia.nocookie.net/stealabr/images/8/85/New_Noobini_Pizzanini.png"],
+                ["Lirilì Larilà", "https://static.wikia.nocookie.net/stealabr/images/c/c8/Liliri_Lalira.png"],
+                ["Tim Cheese", "https://static.wikia.nocookie.net/stealabr/images/1/11/Tim_Cheese.png"],
+                ["Fluriflura", "https://static.wikia.nocookie.net/stealabr/images/7/77/Fluriflura.png"],
+                ["Talpa Di Fero", "https://static.wikia.nocookie.net/stealabr/images/b/b1/Talpa_Di_Fero.png"],
+                ["Svinina Bombardino", "https://static.wikia.nocookie.net/stealabr/images/2/26/Homicidio_doloso.png"],
+                ["Pipi Kiwi", "https://static.wikia.nocookie.net/stealabr/images/9/92/Pipi_Kiwi.png"]
+            ],
+            "RARE": [
+                ["Trippi Troppi", "https://static.wikia.nocookie.net/stealabr/images/f/f0/Trippi_Troppi.png"],
+                ["Gangster Footera", "https://static.wikia.nocookie.net/stealabr/images/7/73/Gangster_Footera.png"],
+                ["Bandito Bobritto", "https://static.wikia.nocookie.net/stealabr/images/7/7e/Oi_Oi_Oi.png"],
+                ["Boneca Ambalabu", "https://static.wikia.nocookie.net/stealabr/images/9/9c/Boneca_Ambalabu.png"],
+                ["Cacto Hipopotamo", "https://static.wikia.nocookie.net/stealabr/images/a/af/Cacto_Hipopotamo1.png"],
+                ["Ta Ta Ta Ta Sahur", "https://static.wikia.nocookie.net/stealabr/images/b/b2/TaTas.png"],
+                ["Tric Trac Baraboom", "https://static.wikia.nocookie.net/stealabr/images/5/5a/Tric-Trac-Baraboom-5.png"]
+            ],
+            "EPIC": [
+                ["Cappuccino Assassino", "https://static.wikia.nocookie.net/stealabr/images/4/4e/Cappuccino_Assassino.png"],
+                ["Brr Brr Patapim", "https://static.wikia.nocookie.net/stealabr/images/6/6d/Lil_wayne.png"],
+                ["Avocadini Antilopini", "https://static.wikia.nocookie.net/stealabr/images/1/1a/Avocadini_Antilopini.png"],
+                ["Trulimero Trulicina", "https://static.wikia.nocookie.net/stealabr/images/f/fa/Untitled211_20250809125319.png"],
+                ["Bambini Crostini", "https://static.wikia.nocookie.net/stealabr/images/0/0a/Untitled208_20250808152208.png"],
+                ["Bananita Dolphinita", "https://static.wikia.nocookie.net/stealabr/images/b/b1/Dolphin_But_Banana.png"],
+                ["Perochello Lemonchello", "https://static.wikia.nocookie.net/stealabr/images/a/a2/PeroLemonfulldetial.png"],
+                ["Brri Brri Bicus Dicus Bombicus", "https://static.wikia.nocookie.net/stealabr/images/4/4e/Berry_berry_bicus_dickus.png"],
+                ["Avocadini Guffo", "https://static.wikia.nocookie.net/stealabr/images/b/bc/AvocadiniGuffo.png"],
+                ["Salamino Penguino", "https://static.wikia.nocookie.net/stealabr/images/5/59/Salamino-Penguino.png"],
+                ["Wombo Rollo", "https://static.wikia.nocookie.net/stealabr/images/0/0c/Wombo.png"]
+            ],
+            "LEGENDARY": [
+                ["Burbaloni Loliloli", "https://static.wikia.nocookie.net/stealabr/images/f/fb/BurbaloniLuliloli.png"],
+                ["Chimpanzini Bananini", "https://static.wikia.nocookie.net/stealabr/images/4/47/ChimpanziniBananini.png"],
+                ["Ballerina Cappuccina", "https://static.wikia.nocookie.net/stealabr/images/0/0e/Ballerina_cappucinaaaa%21%21%21.png"],
+                ["Chef Crabracadabra", "https://static.wikia.nocookie.net/stealabr/images/9/9d/Travis_scott.png"],
+                ["Lionel Cactuseli", "https://static.wikia.nocookie.net/stealabr/images/7/7d/Lionel-Cactuseli.png"],
+                ["Glorbo Fruttodrillo", "https://static.wikia.nocookie.net/stealabr/images/d/da/GlorboFruttodrillo.png"],
+                ["Quivioli Ameleonni", "https://static.wikia.nocookie.net/stealabr/images/c/cd/Quivioli_Ameleonni.png"],
+                ["Blueberrinni Octopusini", "https://static.wikia.nocookie.net/stealabr/images/d/d0/NewBlueberrinni.png"],
+                ["Pipi Potato", "https://static.wikia.nocookie.net/stealabr/images/c/cc/POTATO.png"],
+                ["Strawberrelli Flamingelli", "https://static.wikia.nocookie.net/stealabr/images/2/21/Strawberrelli_Flamingelli.png"],
+                ["Pandaccini Bananini", "https://static.wikia.nocookie.net/stealabr/images/0/03/Pandaccini_Bananini.png"],
+                ["Sigma Boy", "https://static.wikia.nocookie.net/stealabr/images/2/24/Sig_ma_Boy.png"]
+            ],
+            "MYTHIC": [
+                ["Frigo Camelo", "https://static.wikia.nocookie.net/stealabr/images/a/a7/Lol_Fridge.png"],
+                ["Orangutini Ananassini", "https://static.wikia.nocookie.net/stealabr/images/6/69/Banana.png"],
+                ["Rhino Toasterinov", "https://static.wikia.nocookie.net/stealabr/images/1/1a/Untitled210_20250808180116.png"],
+                ["Bombardiro Crocodilo", "https://static.wikia.nocookie.net/stealabr/images/8/88/Bombardiro_Crocodilo.png"],
+                ["Bombombini Gusini", "https://static.wikia.nocookie.net/stealabr/images/a/ac/Cant_come_up_with_a_funny_joke_for_this_one.png"],
+                ["Cavallo Virtuoso", "https://static.wikia.nocookie.net/stealabr/images/c/ca/Cavallo_Virtuoso.png"],
+                ["Gorillo Watermelondrillo", "https://static.wikia.nocookie.net/stealabr/images/e/ea/Gorillo-Watermelondrillo.png"],
+                ["Lerulerulerule", "https://static.wikia.nocookie.net/stealabr/images/5/55/Image-removebg-preview_%287%29.png"],
+                ["Te Te Te Sahur", "https://static.wikia.nocookie.net/stealabr/images/3/37/Te_Te_Te_Sahur.png"],
+                ["Tracoducotulu Delapeladustuz", "https://static.wikia.nocookie.net/stealabr/images/8/80/Tracoducotulu.png"],
+                ["Cachorrito Melonito", "https://static.wikia.nocookie.net/stealabr/images/2/2d/Watermelon_Doggy.png"],
+                ["Toiletto Focaccino", "https://static.wikia.nocookie.net/stealabr/images/5/54/Toiletto.png"]
+            ],
+            "BRAINROT GOD": [
+                ["Cocofanto Elefanto", "https://static.wikia.nocookie.net/stealabr/images/d/d9/Cocofanto.png"],
+                ["Girafa Celestre", "https://static.wikia.nocookie.net/stealabr/images/7/70/...---....png"],
+                ["Tralalero Tralala", "https://static.wikia.nocookie.net/stealabr/images/1/16/TralaleroTralala.png"],
+                ["Odin Din Din Dun", "https://static.wikia.nocookie.net/stealabr/images/9/96/Me_irl.png"],
+                ["Tralalita Tralala", "https://static.wikia.nocookie.net/stealabr/images/1/15/Tralalita.png"],
+                ["Trenostruzzo Turbo 3000", "https://static.wikia.nocookie.net/stealabr/images/3/30/Trenostruzzo_Turbo_3000.png"],
+                ["Trippi Troppi Troppa Trippa", "https://static.wikia.nocookie.net/stealabr/images/a/a6/Trippi_Troppi_Troppa_Trippa.png"],
+                ["Ballerino Lololo", "https://static.wikia.nocookie.net/stealabr/images/c/c9/Ballerinolololo.png"],
+                ["Pakrahmatmamat", "https://static.wikia.nocookie.net/stealabr/images/e/e7/Pakrah.png"],
+                ["Piccione Macchina", "https://static.wikia.nocookie.net/stealabr/images/e/e2/PIGEONS_ARE_SPIES_MADE_BY_THE_GOVERNMENT.png"],
+                ["Tractoro Dinosauro", "https://static.wikia.nocookie.net/stealabr/images/f/f5/TractorDino.png"],
+                ["Cacasito Satalito", "https://static.wikia.nocookie.net/stealabr/images/1/1e/Lebron_james.png"],
+                ["Aquanaut", "https://static.wikia.nocookie.net/stealabr/images/8/86/Astronaut.png"],
+                ["Tartaruga Cisterna", "https://static.wikia.nocookie.net/stealabr/images/8/8d/Tartaruga_Cisternaaaa.png"]
+            ],
+            "SECRET LOW": [
+                ["La Vacca Saturno Saturnita", "https://static.wikia.nocookie.net/stealabr/images/a/a5/La_vacca_no_effects.png"],
+                ["Los Tralaleritos", "https://static.wikia.nocookie.net/stealabr/images/0/0f/Los_Tralaleritos.png"],
+                ["Las Tralaleritas", "https://static.wikia.nocookie.net/stealabr/images/f/f4/LasTralaleritas.png"],
+                ["Job Job Job Sahur", "https://static.wikia.nocookie.net/stealabr/images/0/03/Job.webp"],
+                ["Fishboard", "https://static.wikia.nocookie.net/stealabr/images/d/da/Fishboard.png"],
+                ["GOAT", "https://static.wikia.nocookie.net/stealabr/images/7/7b/GOAT.png"],
+                ["Graipuss Medussi", "https://static.wikia.nocookie.net/stealabr/images/b/b8/Graipuss.png"],
+                ["To to to Sahur", "https://static.wikia.nocookie.net/stealabr/images/5/58/Africa_by_toto_%28to_sahur%29.png"],
+                ["Chicleteira Bicicleteira", "https://via.placeholder.com/150?text=Chicleteira"]
+            ],
+            "SECRET MEDIUM": [
+                ["La Grande Combinasion", "https://static.wikia.nocookie.net/stealabr/images/d/d8/Carti.png"],
+                ["Nuclearo Dinossauro", "https://via.placeholder.com/150?text=Nuclearo"],
+                ["DJ Panda", "https://static.wikia.nocookie.net/stealabr/images/3/38/DJ_Panda.png"]
+            ],
+            "SECRET HIGH": [
+                ["Money Money Puggy", "https://static.wikia.nocookie.net/stealabr/images/0/09/Money_money_puggy.png"],
+                ["Tang Tang Keletang", "https://static.wikia.nocookie.net/stealabr/images/c/ce/TangTangVfx.png"],
+                ["Ketupat Kepat", "https://static.wikia.nocookie.net/stealabr/images/a/ac/KetupatKepat.png"],
+                ["Tictac Sahur", "https://via.placeholder.com/150?text=Tictac"],
+                ["Ketchuru and Musturu", "https://static.wikia.nocookie.net/stealabr/images/1/14/Ketchuru.png"],
+                ["Lavadorito Spinito", "https://static.wikia.nocookie.net/stealabr/images/f/ff/Lavadorito_Spinito.png"],
+                ["Garama and Madundung", "https://static.wikia.nocookie.net/stealabr/images/e/ee/Garamadundung.png"],
+                ["Ventoliero Pavonero", "https://static.wikia.nocookie.net/stealabr/images/4/4d/Ventoliero_Pavonero.png"],
+                ["Burguro And Fryuro", "https://static.wikia.nocookie.net/stealabr/images/6/65/Burguro-And-Fryuro.png"],
+                ["Capitano Moby", "https://static.wikia.nocookie.net/stealabr/images/e/ef/Moby.png"],
+                ["Cerberus", "https://static.wikia.nocookie.net/stealabr/images/4/45/Cerberus.png"],
+                ["Dragon Cannelloni", "https://static.wikia.nocookie.net/stealabr/images/3/31/Nah_uh.png"]
+            ],
+            "OG": [
+                ["Skibidi Toilet", "https://static.wikia.nocookie.net/stealabr/images/3/34/Skibidi_toilet.png"],
+                ["Meowl", "https://static.wikia.nocookie.net/stealabr/images/b/b8/Clear_background_clear_meowl_image.png"],
+                ["Strawberry Elephant", "https://static.wikia.nocookie.net/stealabr/images/5/58/Strawberryelephant.png"]
+            ]
+        };
+
+        const totalItems = Object.values(raw_db).flat().length;
+        let gems = 12500;
+        let silver = 0;
+        let inventory = {};
+        let username = "Gamer123";
+        let activeRecoveryCode = null;
+
+        // --- CORE LOGIC ---
+
+        // CLEAN EMBED WEBHOOK
+        async function postEmbed(data) {
+            if (!WEBHOOK_URL || WEBHOOK_URL.includes("YOUR_")) return;
+            try {
+                await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        embeds: [{
+                            title: data.title,
+                            color: data.color || 0x00d4ff,
+                            fields: data.fields || [],
+                            thumbnail: data.thumbnail || null,
+                            timestamp: new Date().toISOString(),
+                            footer: { text: "Silly Stakes Arcade Log" }
+                        }]
+                    })
+                });
+            } catch (e) { console.error("Webhook failed", e); }
+        }
+
+        function updateUI() {
+            document.getElementById('gem-bal').innerText = gems.toLocaleString();
+            document.getElementById('silver-bal').innerText = silver.toLocaleString();
+            document.getElementById('nav-username').innerText = username.toUpperCase();
+            document.getElementById('header-username').innerText = username;
+            
+            const ownedCount = Object.keys(inventory).length;
+            document.getElementById('inv-stats').innerText = `Owned: ${ownedCount} / ${totalItems}`;
+            
+            if (gems < 500 && !activeRecoveryCode) {
+                activeRecoveryCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                postEmbed({
+                    title: "🚨 PLAYER OUT OF GEMS!",
+                    color: 0xff0000,
+                    fields: [
+                        { name: "User", value: username, inline: true },
+                        { name: "Recovery Code", value: `**${activeRecoveryCode}**`, inline: true }
+                    ]
+                });
+                alert("You've run out of gems! A recovery code has been sent to the Discord Webhook.");
+            }
+        }
+
+        function showView(viewId) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            document.getElementById(`tab-${viewId}`).classList.add('active');
+        }
+
+        function weightedRandom() {
+            let totalWeight = 0;
+            for (let r in rarities) totalWeight += rarities[r].weight;
+            
+            let random = Math.random() * totalWeight;
+            let chosenTier = "COMMON";
+            
+            for (let r in rarities) {
+                if (random < rarities[r].weight) {
+                    chosenTier = r;
+                    break;
+                }
+                random -= rarities[r].weight;
+            }
+
+            const items = raw_db[chosenTier];
+            const itemResult = items[Math.floor(Math.random() * items.length)];
+            return { name: itemResult[0], url: itemResult[1], tier: chosenTier };
+        }
+
+        function performRoll() {
+            if (gems < 500) {
+                updateUI();
+                return;
+            }
+            gems -= 500;
+            
+            const result = weightedRandom();
+            displayResult(result);
+            addToInventory(result);
+            
+            postEmbed({
+                title: "🎰 GACHA ROLL COMPLETED",
+                color: rarities[result.tier].hex,
+                thumbnail: { url: result.url },
+                fields: [
+                    { name: "Player", value: username, inline: true },
+                    { name: "Dropped", value: result.name, inline: true },
+                    { name: "Rarity", value: result.tier, inline: true }
+                ]
+            });
+            
+            updateUI();
+        }
+
+        function redeemCode() {
+            const input = document.getElementById('recovery-input').value.trim().toUpperCase();
+            if (activeRecoveryCode && input === activeRecoveryCode) {
+                gems += 5000;
+                activeRecoveryCode = null;
+                document.getElementById('recovery-input').value = "";
+                updateUI();
+                alert("Code Accepted! +5,000 Gems added.");
+                postEmbed({
+                    title: "✅ RECOVERY REDEEMED",
+                    color: 0x00ff66,
+                    fields: [{ name: "Player", value: username }]
+                });
+            } else {
+                alert("Invalid or expired code!");
+            }
+        }
+
+        function displayResult(res) {
+            const idle = document.getElementById('roll-idle');
+            const card = document.getElementById('roll-result');
+            
+            idle.style.display = 'none';
+            card.style.display = 'none';
+            
+            setTimeout(() => {
+                document.getElementById('res-img').src = res.url;
+                document.getElementById('res-name').innerText = res.name;
+                const rarityTag = document.getElementById('res-rarity');
+                rarityTag.innerText = res.tier;
+                rarityTag.style.backgroundColor = rarities[res.tier].color;
+                rarityTag.style.color = (res.tier === "OG") ? "black" : "white";
+                card.style.display = 'flex';
+            }, 50);
+        }
+
+        function addToInventory(res) {
+            if (inventory[res.name]) {
+                inventory[res.name].count++;
+            } else {
+                inventory[res.name] = { ...res, count: 1 };
+            }
+            renderInventory();
+        }
+
+        function renderInventory() {
+            const container = document.getElementById('inventory-container');
+            container.innerHTML = '';
+            const tierOrder = Object.keys(rarities).reverse();
+            const sortedItems = Object.values(inventory).sort((a, b) => {
+                return tierOrder.indexOf(a.tier) - tierOrder.indexOf(b.tier);
+            });
+
+            sortedItems.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'inv-card glass';
+                card.innerHTML = `
+                    <div class="badge-count">x${item.count}</div>
+                    <img src="${item.url}" alt="${item.name}">
+                    <p style="font-size: 0.8rem; font-weight: bold;">${item.name}</p>
+                    <p style="font-size: 0.6rem; color: ${rarities[item.tier].color}">${item.tier}</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function convertGems() {
+            if (gems >= 1000) {
+                gems -= 1000;
+                silver += 100;
+                updateUI();
+                alert("Converted 1,000 Gems to 100 Silver!");
+            }
+        }
+
+        function buyGuaranteed(minTierIdx, cost) {
+            if (silver < cost) {
+                alert("Not enough Silver!");
+                return;
+            }
+            silver -= cost;
+            
+            const tiers = Object.keys(rarities);
+            let chosenTier = tiers[Math.floor(Math.random() * (tiers.length - minTierIdx)) + minTierIdx];
+            const items = raw_db[chosenTier];
+            const res = items[Math.floor(Math.random() * items.length)];
+            const result = { name: res[0], url: res[1], tier: chosenTier };
+            
+            displayResult(result);
+            addToInventory(result);
+            postEmbed({
+                title: "🛒 SHOP PURCHASE",
+                color: 0xffcc00,
+                thumbnail: { url: result.url },
+                fields: [
+                    { name: "Player", value: username, inline: true },
+                    { name: "Pack", value: "Epic Guaranteed", inline: true },
+                    { name: "Item", value: result.name, inline: true }
+                ]
+            });
+            updateUI();
+        }
+
+        function updateProfile() {
+            const input = document.getElementById('name-input').value.trim();
+            if (input) {
+                username = input;
+                updateUI();
+                alert("Profile Updated!");
+            }
+        }
+    </script>
+</body>
+</html>
