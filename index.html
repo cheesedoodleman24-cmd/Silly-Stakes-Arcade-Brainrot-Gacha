@@ -169,7 +169,13 @@
                 <label for="emoji">Emoji</label>
                 <input type="text" id="emoji" placeholder="Emoji" required>
             </div>
-            
+            <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" id="title" placeholder="Title" required>
+            </div>
+        </div>
+
+        <div class="grid-2">
             <div class="form-group">
                 <label for="tag">Subtitle</label>
                 <select id="tag">
@@ -180,21 +186,16 @@
                     <option value="PAID">PAID</option>
                 </select>
             </div>
-        </div>
 
-        <div class="form-group">
-            <label for="title">Title</label>
-            <input type="text" id="title" placeholder="Title" required>
-        </div>
-
-        <div class="form-group">
-            <label for="author">Author</label>
-            <input type="text" id="author" placeholder="Author" required>
+            <div class="form-group">
+                <label for="author">Author</label>
+                <input type="text" id="author" placeholder="Author" required>
+            </div>
         </div>
 
         <div class="grid-2">
             <div class="form-group">
-                <label for="backdoored">Backdoored?</label>
+                <label for="backdoored">Backdoored</label>
                 <select id="backdoored">
                     <option value="No">No</option>
                     <option value="Yes">Yes</option>
@@ -205,7 +206,7 @@
             </div>
 
             <div class="form-group">
-                <label for="template">Template?</label>
+                <label for="template">Template</label>
                 <select id="template">
                     <option value="Yes">Yes</option>
                     <option value="No">No</option>
@@ -216,7 +217,7 @@
 
         <div class="grid-2">
             <div class="form-group">
-                <label for="leaked">Leaked?</label>
+                <label for="leaked">Leaked</label>
                 <select id="leaked">
                     <option value="No">No</option>
                     <option value="Yes">Yes</option>
@@ -233,14 +234,14 @@
         <div class="form-group">
             <label for="fileInput">Upload File (LUA, RBXM, RBXL, LUAU)</label>
             <input type="file" id="fileInput" accept=".lua,.rbxm,.rbxl,.luau">
-            <div class="file-hint">Note: LUA/LUAU files will have comments stripped automatically.</div>
+            <div class="file-hint">LUA/LUAU files will have comments stripped automatically.</div>
         </div>
 
         <button type="submit">Generate & Copy Info</button>
     </form>
 
     <div class="notification" id="notification">
-        Discord layout copied to clipboard! Renamed file downloading...
+        Discord layout copied! Files processing...
     </div>
 </div>
 
@@ -248,10 +249,9 @@
     document.getElementById('leakerForm').addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        // 1. Gather Form Data
         const emoji = document.getElementById('emoji').value;
-        const tag = document.getElementById('tag').value;
         const title = document.getElementById('title').value;
+        const tag = document.getElementById('tag').value;
         const author = document.getElementById('author').value;
         const backdoored = document.getElementById('backdoored').value;
         const template = document.getElementById('template').value;
@@ -259,55 +259,56 @@
         const date = document.getElementById('date').value;
         const fileInput = document.getElementById('fileInput');
 
-        // Image URL wrapped in angle brackets < > prevents Discord from showing an embed preview
-        const imageUrl = "<https://cdn.discordapp.com/attachments/1496787258072764527/1505746814341742623/roblox_thumbnail.png?ex=6a0bbf7f&is=6a0a6dff&hm=d6d6c9a88dbfeb3a4d10a66695fc288ca4094b9d79adc0a62d8b57971d893dc8&>";
-
-        // 2. Generate Discord Text Format
         const discordMarkdown = `# ${emoji} | [${tag}] ${title}.\n` +
                                 `> -# - Author: ${author}\n` +
                                 `> -# - Backdoored: ${backdoored}\n` +
                                 `> -# - Template: ${template}\n` +
                                 `> -# - Leaked: ${leaked}\n` +
-                                `> -# - Date: ${date}\n` +
-                                `${imageUrl}`;
+                                `> -# - Date: ${date}`;
 
-        // 3. Copy To Keyboard/Clipboard
         try {
             await navigator.clipboard.writeText(discordMarkdown);
         } catch (err) {
-            console.error('Failed to copy text: ', err);
+            console.error(err);
         }
 
-        // 4. File Processing & Renaming System
+        const remoteImgUrl = "https://cdn.discordapp.com/attachments/1496787258072764527/1505746814341742623/roblox_thumbnail.png?ex=6a0bbf7f&is=6a0a6dff&hm=d6d6c9a88dbfeb3a4d10a66695fc288ca4094b9d79adc0a62d8b57971d893dc8";
+        
+        fetch(remoteImgUrl)
+            .then(response => response.blob())
+            .then(blob => {
+                triggerDownload(blob, "roblox_thumbnail.png");
+            })
+            .catch(err => {
+                const imgFallback = document.createElement('a');
+                imgFallback.href = remoteImgUrl;
+                imgFallback.target = "_blank";
+                imgFallback.download = "roblox_thumbnail.png";
+                imgFallback.click();
+            });
+
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             const originalName = file.name;
             const extension = originalName.substring(originalName.lastIndexOf('.')).toLowerCase();
-            
-            // Format new output name: 🧀 I <Title>.<extension>
             const newFileName = `🧀 I ${title}${extension}`;
 
             if (extension === '.lua' || extension === '.luau') {
-                // Read and clean code comments for plain text LUA scripts
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     let fileContent = event.target.result;
-                    
-                    // Safe regex to strip single-line '--' comments and multi-line '--[[ ]]' blocks
                     let cleanContent = fileContent
-                        .replace(/--\[\[[\s\S]*?\]\]/g, '') // Multi-line
-                        .replace(/--.*$/gm, '');            // Single line
+                        .replace(/--\[\[[\s\S]*?\]\]/g, '')
+                        .replace(/--.*$/gm, '');
                     
                     triggerDownload(new Blob([cleanContent], { type: 'text/plain' }), newFileName);
                 };
                 reader.readAsText(file);
             } else {
-                // For binary structures like .rbxm / .rbxl, pass through unaltered to protect integrity
                 triggerDownload(file, newFileName);
             }
         }
 
-        // Show Visual Toast Success Info
         const notification = document.getElementById('notification');
         notification.style.display = 'block';
         setTimeout(() => {
